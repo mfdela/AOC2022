@@ -98,8 +98,11 @@ defmodule Day2 do
   def part1(input) do
     input
     |> parse_input()
-    |> Enum.reduce(Nx.tensor([0]), fn [r, c], acc ->
-      Nx.add(acc, Nx.slice(@strategy_lut, [r, c], [1, 1]))
+    |> Enum.reduce(0, fn [r, c], acc ->
+      acc +
+        (Nx.slice(@strategy_lut, [r, c], [1, 1])
+         |> Nx.to_flat_list()
+         |> Enum.at(0))
     end)
   end
 
@@ -126,8 +129,7 @@ end
 Checking that the example input produces the right result:
 
 ```elixir
-[sum | _] = Nx.to_flat_list(Day2.part1(example_input))
-sum == 15
+Day2.part1(example_input) == 15
 ```
 
 <!-- livebook:{"output":true} -->
@@ -151,17 +153,6 @@ Using real input data (saved on a file as it's too long to show here):
 ```elixir
 input = File.read!("Day2/input.txt")
 Day2.part1(input)
-```
-
-<!-- livebook:{"output":true} -->
-
-```
-#Nx.Tensor<
-  s64[me: 1][opponent: 1]
-  [
-    [13446]
-  ]
->
 ```
 
 ```elixir
