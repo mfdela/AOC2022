@@ -138,7 +138,7 @@ true
 Using real input data (saved on a file as it's too long to show here):
 
 ```elixir
-input = File.read!("input.txt")
+input = File.read!("Day1/input.txt")
 Day1.part1(input)
 ```
 
