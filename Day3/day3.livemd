@@ -88,7 +88,7 @@ defmodule Day3 do
     |> Enum.map(&String.to_charlist/1)
   end
 
-  def char_to_score(c) do
+  def char_to_score([c]) do
     cond do
       c > 97 -> c - 96
       c > 65 -> c - 38
@@ -107,7 +107,6 @@ defmodule Day3 do
       acc +
         (MapSet.intersection(MapSet.new(first_half), MapSet.new(second_half))
          |> MapSet.to_list()
-         |> List.first()
          |> char_to_score())
     end)
   end
@@ -121,7 +120,6 @@ defmodule Day3 do
         (MapSet.intersection(MapSet.new(first), MapSet.new(second))
          |> MapSet.intersection(MapSet.new(third))
          |> MapSet.to_list()
-         |> List.first()
          |> char_to_score())
     end)
   end
