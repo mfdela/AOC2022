@@ -85,11 +85,7 @@ defmodule Day3 do
   def parse_input(input) do
     input
     |> String.split("\n", trim: true)
-    |> Enum.map(fn str ->
-      str
-      |> String.to_charlist()
-      |> Enum.chunk_every(trunc(String.length(str) / 2))
-    end)
+    |> Enum.map(&String.to_charlist/1)
   end
 
   def char_to_score(c) do
@@ -103,6 +99,10 @@ defmodule Day3 do
   def part1(input) do
     input
     |> parse_input()
+    |> Enum.map(fn str ->
+      str
+      |> Enum.chunk_every(trunc(Enum.count(str) / 2))
+    end)
     |> Enum.reduce(0, fn [first_half, second_half], acc ->
       acc +
         (MapSet.intersection(MapSet.new(first_half), MapSet.new(second_half))
@@ -115,6 +115,15 @@ defmodule Day3 do
   def part2(input) do
     input
     |> parse_input()
+    |> Enum.chunk_every(3)
+    |> Enum.reduce(0, fn [first, second, third], acc ->
+      acc +
+        (MapSet.intersection(MapSet.new(first), MapSet.new(second))
+         |> MapSet.intersection(MapSet.new(third))
+         |> MapSet.to_list()
+         |> List.first()
+         |> char_to_score())
+    end)
   end
 end
 ```
@@ -122,7 +131,7 @@ end
 <!-- livebook:{"output":true} -->
 
 ```
-{:module, Day3, <<70, 79, 82, 49, 0, 0, 12, ...>>, {:part2, 1}}
+{:module, Day3, <<70, 79, 82, 49, 0, 0, 14, ...>>, {:part2, 1}}
 ```
 
 Checking that the example input produces the right result:
@@ -138,13 +147,13 @@ true
 ```
 
 ```elixir
-Day3.part2(example_input) == 12
+Day3.part2(example_input) == 70
 ```
 
 <!-- livebook:{"output":true} -->
 
 ```
-false
+true
 ```
 
 Using real input data (saved on a file as it's too long to show here):
@@ -161,11 +170,11 @@ Day3.part1(input)
 ```
 
 ```elixir
-Day2.part2(input)
+Day3.part2(input)
 ```
 
 <!-- livebook:{"output":true} -->
 
 ```
-13509
+2609
 ```
