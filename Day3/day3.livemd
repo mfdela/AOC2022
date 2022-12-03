@@ -88,12 +88,21 @@ defmodule Day3 do
     |> Enum.map(&String.to_charlist/1)
   end
 
-  def char_to_score([c]) do
+  defp char_to_score([c]) do
     cond do
-      c > 97 -> c - 96
-      c > 65 -> c - 38
+      c in ?a..?z -> c - ?a + 1
+      c in ?A..?Z -> c - ?A + 27
       true -> :error
     end
+  end
+
+  defp intersect([elem]) do
+    MapSet.new(elem)
+  end
+
+  defp intersect([first_elem | rest]) do
+    MapSet.new(first_elem)
+    |> MapSet.intersection(intersect(rest))
   end
 
   def part1(input) do
@@ -103,9 +112,9 @@ defmodule Day3 do
       str
       |> Enum.chunk_every(trunc(Enum.count(str) / 2))
     end)
-    |> Enum.reduce(0, fn [first_half, second_half], acc ->
+    |> Enum.reduce(0, fn x, acc ->
       acc +
-        (MapSet.intersection(MapSet.new(first_half), MapSet.new(second_half))
+        (intersect(x)
          |> MapSet.to_list()
          |> char_to_score())
     end)
@@ -115,10 +124,9 @@ defmodule Day3 do
     input
     |> parse_input()
     |> Enum.chunk_every(3)
-    |> Enum.reduce(0, fn [first, second, third], acc ->
+    |> Enum.reduce(0, fn x, acc ->
       acc +
-        (MapSet.intersection(MapSet.new(first), MapSet.new(second))
-         |> MapSet.intersection(MapSet.new(third))
+        (intersect(x)
          |> MapSet.to_list()
          |> char_to_score())
     end)
