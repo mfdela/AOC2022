@@ -94,15 +94,6 @@ defmodule Day4 do
     [String.to_integer(h), String.to_integer(t)]
   end
 
-  defp intersect([elem]) do
-    MapSet.new(elem)
-  end
-
-  defp intersect([first_elem | rest]) do
-    MapSet.new(first_elem)
-    |> MapSet.intersection(intersect(rest))
-  end
-
   def part1(input) do
     input
     |> parse_input()
