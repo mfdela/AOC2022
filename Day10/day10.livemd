@@ -399,7 +399,6 @@ defmodule Day10 do
 
     crt_row = List.duplicate(".", 40)
     empty_crt = List.duplicate(crt_row, 6)
-    sprite_pos = 1
 
     crt =
       for i <- 0..5, j <- 0..39, reduce: empty_crt do
@@ -423,20 +422,15 @@ defmodule Day10 do
           end
       end
 
-    for i <- 0..5 do
-      row = Enum.at(crt, i) |> Enum.join()
-      IO.puts(row)
-    end
+    out =
+      for i <- 0..5, into: [] do
+        [Enum.at(crt, i) |> Enum.join()]
+      end
+      |> Enum.join("\n")
+
+    IO.puts(out)
   end
 end
-```
-
-<!-- livebook:{"output":true} -->
-
-```
-warning: variable "sprite_pos" is unused (if the variable is not meant to be used, prefix it with an underscore)
-  Day10/day10.livemd#cell:v47pzxllnyoqyjalsdujzrqlmkjlw3nj:53: Day10.part2/1
-
 ```
 
 <!-- livebook:{"output":true} -->
@@ -475,7 +469,7 @@ Day10.part2(example_input)
 <!-- livebook:{"output":true} -->
 
 ```
-[:ok, :ok, :ok, :ok, :ok, :ok]
+:ok
 ```
 
 Using real input data (saved on a file as it's too long to show here):
@@ -509,5 +503,5 @@ Day10.part2(input)
 <!-- livebook:{"output":true} -->
 
 ```
-[:ok, :ok, :ok, :ok, :ok, :ok]
+:ok
 ```
