@@ -1,0 +1,299 @@
+<!-- livebook:{"persist_outputs":true} -->
+
+# --- Day 12: Hill Climbing Algorithm ---
+
+```elixir
+Mix.install([
+  {:nx, "~> 0.4.1"},
+  {:libgraph, "~> 0.16.0"}
+])
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+Resolving Hex dependencies...
+Resolution completed in 0.017s
+New:
+  complex 0.4.2
+  libgraph 0.16.0
+  nx 0.4.1
+* Getting nx (Hex package)
+* Getting libgraph (Hex package)
+* Getting complex (Hex package)
+==> libgraph
+Compiling 15 files (.ex)
+Generated libgraph app
+==> complex
+Compiling 2 files (.ex)
+Generated complex app
+==> nx
+Compiling 29 files (.ex)
+Generated nx app
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+:ok
+```
+
+## Part 1
+
+You try contacting the Elves using your handheld device, but the river you're following must be too low to get a decent signal.
+
+You ask the device for a heightmap of the surrounding area (your puzzle input). The heightmap shows the local area from above broken into a grid; the elevation of each square of the grid is given by a single lowercase letter, where a is the lowest elevation, b is the next-lowest, and so on up to the highest elevation, z.
+
+Also included on the heightmap are marks for your current position (S) and the location that should get the best signal (E). Your current position (S) has elevation a, and the location that should get the best signal (E) has elevation z.
+
+You'd like to reach E, but to save energy, you should do it in as few steps as possible. During each step, you can move exactly one square up, down, left, or right. To avoid needing to get out your climbing gear, the elevation of the destination square can be at most one higher than the elevation of your current square; that is, if your current elevation is m, you could step to elevation n, but not to elevation o. (This also means that the elevation of the destination square can be much lower than the elevation of your current square.)
+
+For example:
+
+```elixir
+example_input = """
+Sabqponm
+abcryxxl
+accszExk
+acctuvwj
+abdefghi
+"""
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+"Sabqponm\nabcryxxl\naccszExk\nacctuvwj\nabdefghi\n"
+```
+
+Here, you start in the top-left corner; your goal is near the middle. You could start by moving down or right, but eventually you'll need to head toward the e at the bottom. From there, you can spiral around to the goal:
+
+```
+v..v<<<<
+>v.vv<<^
+.>vv>E^^
+..v>>>^^
+..>>>>>^
+```
+
+In the above diagram, the symbols indicate whether the path exits each square moving up (^), down (v), left (<), or right (>). The location that should get the best signal is still E, and . marks unvisited squares.
+
+This path reaches the goal in 31 steps, the fewest possible.
+
+What is the fewest steps required to move from your current position to the location that should get the best signal?
+
+## Part 2
+
+As you walk up the hill, you suspect that the Elves will want to turn this into a hiking trail. The beginning isn't very scenic, though; perhaps you can find a better starting point.
+
+To maximize exercise while hiking, the trail should start as low as possible: elevation a. The goal is still the square marked E. However, the trail should still be direct, taking the fewest steps to reach its goal. So, you'll need to find the shortest path from any square at elevation a to the square marked E.
+
+Again consider the example from above:
+
+```
+Sabqponm
+abcryxxl
+accszExk
+acctuvwj
+abdefghi
+```
+
+Now, there are six choices for starting position (five marked a, plus the square marked S that counts as being at elevation a). If you start at the bottom-left square, you can reach the goal most quickly:
+
+```
+...v<<<<
+...vv<<^
+...v>E^^
+.>v>>>^^
+>^>>>>>^
+```
+
+This path reaches the goal in only 29 steps, the fewest possible.
+
+What is the fewest steps required to move starting from any square with elevation a to the location that should get the best signal?
+
+## Code
+
+```elixir
+import Nx
+import Graph
+
+defmodule Day12 do
+  def parse_input(input) do
+    input
+    |> String.split("\n", trim: true)
+    |> Enum.map(&String.to_charlist/1)
+    |> Nx.tensor(names: [:r, :c], type: {:u, 8})
+  end
+
+  defp find_start_end(grid) do
+    {r, c} = Nx.shape(grid)
+
+    {s, e} =
+      for i <- 0..(r - 1), reduce: {{}, {}} do
+        acc ->
+          for j <- 0..(c - 1), reduce: acc do
+            acc ->
+              c = grid[r: i][c: j] |> Nx.to_number()
+              {s, e} = acc
+
+              cond do
+                c == ?S -> {{i, j}, e}
+                c == ?E -> {s, {i, j}}
+                true -> acc
+              end
+          end
+      end
+
+    n_grid =
+      Nx.map(grid, [type: {:u, 8}], fn x ->
+        c = Nx.to_number(x)
+
+        cond do
+          c == 83 -> Nx.tensor(?a)
+          c == 69 -> Nx.tensor(?z)
+          true -> Nx.tensor(c)
+        end
+      end)
+
+    {n_grid, s, e}
+  end
+
+  defp adjacent(grid, point) do
+    {r, c} = Nx.shape(grid)
+    {i, j} = point
+    elev = grid[r: i][c: j] |> Nx.to_number()
+    # IO.puts("adjacent to (#{i}, #{j}) = #{elev}")
+
+    dir =
+      cond do
+        i == 0 and j == 0 -> [{1, 0}, {0, 1}]
+        i == r - 1 and j == c - 1 -> [{-1, 0}, {0, -1}]
+        i == 0 and j == c - 1 -> [{1, 0}, {0, -1}]
+        i == r - 1 and j == 0 -> [{-1, 0}, {0, 1}]
+        i == 0 -> [{1, 0}, {0, 1}, {0, -1}]
+        j == 0 -> [{-1, 0}, {1, 0}, {0, 1}]
+        i == r - 1 -> [{-1, 0}, {0, 1}, {0, -1}]
+        j == c - 1 -> [{1, 0}, {-1, 0}, {0, -1}]
+        true -> [{-1, 0}, {1, 0}, {0, -1}, {0, 1}]
+      end
+
+    for d <- dir, into: [] do
+      {di, dj} = d
+      next = grid[r: i + di][c: j + dj] |> Nx.to_number()
+      # IO.puts("Checking #{i + di} #{j + dj} = #{next}")
+
+      if next <= elev + 1 do
+        {i + di, j + dj}
+      end
+    end
+    |> Enum.filter(&(!is_nil(&1)))
+  end
+
+  defp build_graph(grid) do
+    {r, c} = Nx.shape(grid)
+
+    for i <- 0..(r - 1), reduce: Graph.new(type: :directed) do
+      acc ->
+        for j <- 0..(c - 1), reduce: acc do
+          acc ->
+            elev = grid[r: i][c: i] |> Nx.to_number()
+
+            for v <- adjacent(grid, {i, j}), reduce: acc do
+              acc ->
+                Graph.add_vertex(acc, {i, j}, [elev])
+                |> Graph.add_edge({i, j}, v)
+            end
+        end
+    end
+  end
+
+  defp search_starting_points(grid) do
+    {r, c} = Nx.shape(grid)
+
+    for i <- 0..(r - 1), reduce: [] do
+      acc ->
+        for j <- 0..(c - 1), reduce: acc do
+          acc ->
+            c = grid[r: i][c: j] |> Nx.to_number()
+
+            cond do
+              c == ?a -> acc ++ [{i, j}]
+              true -> acc
+            end
+        end
+    end
+  end
+
+  def part(input, part_n) do
+    grid = parse_input(input)
+    {norm_grid, start_point, end_point} = find_start_end(grid)
+    g = build_graph(norm_grid)
+
+    starting_points =
+      case part_n do
+        1 -> [start_point]
+        2 -> search_starting_points(norm_grid)
+        _ -> :error
+      end
+
+    for s <- starting_points do
+      Graph.dijkstra(g, s, end_point)
+    end
+    |> Enum.filter(fn x -> !is_nil(x) end)
+    |> Enum.map(&(Enum.count(&1) - 1))
+    |> Enum.min()
+  end
+end
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+{:module, Day12, <<70, 79, 82, 49, 0, 0, 31, ...>>, {:part, 2}}
+```
+
+Checking that the example input produces the right result:
+
+```elixir
+Day12.part(example_input, 1) == 31
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+true
+```
+
+```elixir
+Day12.part(example_input, 2) == 29
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+true
+```
+
+Using real input data (saved on a file as it's too long to show here):
+
+```elixir
+input = File.read!("Day12/input.txt")
+Day12.part(input, 1)
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+456
+```
+
+```elixir
+Day12.part(input, 2)
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+454
+```
