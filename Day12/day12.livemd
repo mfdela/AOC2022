@@ -12,29 +12,6 @@ Mix.install([
 <!-- livebook:{"output":true} -->
 
 ```
-Resolving Hex dependencies...
-Resolution completed in 0.017s
-New:
-  complex 0.4.2
-  libgraph 0.16.0
-  nx 0.4.1
-* Getting nx (Hex package)
-* Getting libgraph (Hex package)
-* Getting complex (Hex package)
-==> libgraph
-Compiling 15 files (.ex)
-Generated libgraph app
-==> complex
-Compiling 2 files (.ex)
-Generated complex app
-==> nx
-Compiling 29 files (.ex)
-Generated nx app
-```
-
-<!-- livebook:{"output":true} -->
-
-```
 :ok
 ```
 
@@ -230,19 +207,29 @@ defmodule Day12 do
     {norm_grid, start_point, end_point} = find_start_end(grid)
     g = build_graph(norm_grid)
 
-    starting_points =
+    [s1 | starting_points] =
       case part_n do
         1 -> [start_point]
         2 -> search_starting_points(norm_grid)
         _ -> :error
       end
 
-    for s <- starting_points do
-      Graph.dijkstra(g, s, end_point)
-    end
-    |> Enum.filter(fn x -> !is_nil(x) end)
-    |> Enum.map(&(Enum.count(&1) - 1))
-    |> Enum.min()
+    (for s <- starting_points, reduce: Graph.dijkstra(g, s1, end_point) do
+       acc ->
+         if s in acc do
+           drop_index = Enum.find_index(acc, fn x -> x == s end)
+           Enum.drop(acc, drop_index)
+         else
+           n_p = Graph.dijkstra(g, s, end_point)
+
+           cond do
+             n_p == nil -> acc
+             Enum.count(n_p) < Enum.count(acc) -> n_p
+             Enum.count(n_p) >= Enum.count(acc) -> acc
+           end
+         end
+     end
+     |> Enum.count()) - 1
   end
 end
 ```
@@ -250,7 +237,7 @@ end
 <!-- livebook:{"output":true} -->
 
 ```
-{:module, Day12, <<70, 79, 82, 49, 0, 0, 31, ...>>, {:part, 2}}
+{:module, Day12, <<70, 79, 82, 49, 0, 0, 33, ...>>, {:part, 2}}
 ```
 
 Checking that the example input produces the right result:
@@ -262,7 +249,7 @@ Day12.part(example_input, 1) == 31
 <!-- livebook:{"output":true} -->
 
 ```
-true
+31
 ```
 
 ```elixir
@@ -272,7 +259,7 @@ Day12.part(example_input, 2) == 29
 <!-- livebook:{"output":true} -->
 
 ```
-true
+29
 ```
 
 Using real input data (saved on a file as it's too long to show here):
