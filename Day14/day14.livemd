@@ -237,6 +237,8 @@ defmodule Day14 do
   end
 
   defp generate_map({ymax, lines, map}) do
+    # generate map of walls 
+    # map is a Map of maps
     for l <- lines, reduce: {ymax, map} do
       acc ->
         {_, map_to_reduce} = acc
@@ -246,6 +248,7 @@ defmodule Day14 do
           for end_point <- t, reduce: {p, map_to_reduce} do
             acc ->
               {start_point, map} = acc
+              # draw a straight line from start point to end point
               new_map = draw_line(start_point, end_point, map)
               {end_point, new_map}
           end
@@ -255,6 +258,7 @@ defmodule Day14 do
   end
 
   defp draw_line(start_point, end_point, map) do
+    # draw a straight line and make it a wall 
     [xs, ys] = start_point
     [xe, ye] = end_point
     # IO.puts("Drawing line from (#{xs}, #{ys}) to (#{xe}, #{ye})")
