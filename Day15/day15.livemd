@@ -158,6 +158,8 @@ defmodule Day15 do
   end
 
   defp is_in_radius?(point, sensor, sensors) do
+    # is point inside the radius of a sensor?
+    # or is a sensor itself, or it's a beacon
     {x, y} = point
     {sx, sy} = sensor
     {:ok, %Sensors{r: r, bx: bx, by: by}} = Map.fetch(sensors, sensor)
@@ -171,6 +173,8 @@ defmodule Day15 do
   end
 
   defp nearby_sensors(sensors, y_row) do
+    # find all the sensors which radius can
+    # reach y_row
     for s <- Map.keys(sensors), reduce: [] do
       acc ->
         %Sensors{r: r} = sensors[s]
@@ -185,8 +189,10 @@ defmodule Day15 do
   end
 
   defp count_not_beacons(sensors, y_row) do
+    # given a row y_row
+    # search all sensors that can reach that row
     nearby = nearby_sensors(sensors, y_row)
-
+    # check what is the min x and max x for the row y_row 
     {start_x, stop_x} =
       for s <- nearby, reduce: {0, 0} do
         acc ->
@@ -202,6 +208,9 @@ defmodule Day15 do
           end
       end
 
+    # scan the row from min_x to max_x
+    # if the point if in radius of a sensors then
+    # proceed to x+1
     for x <- start_x..(stop_x + 1), reduce: 0 do
       acc ->
         Enum.reduce_while(nearby, acc, fn s, acc ->
@@ -215,15 +224,20 @@ defmodule Day15 do
   end
 
   defp sensors_scan([], point) do
+    # we scanned the list of all sensors
     point
   end
 
   defp sensors_scan(sensors, point) do
+    # scan all sensors
     [s0 | list] = sensors
     {{sx, sy}, %Sensors{r: r}} = s0
     {_x, y} = point
 
     if distance({sx, sy}, point) <= r do
+      # there's no point in increase x+1
+      # instead we search for the max x that the sensors can reach
+      # and skip to that
       next_x = sx + r - abs(y - sy)
       {next_x, -1}
     else
@@ -232,11 +246,13 @@ defmodule Day15 do
   end
 
   defp x_scan(_sensors, x, stopx, _y) when x > stopx do
+    # we reached end of the row
     {-1, -1}
   end
 
   defp x_scan(sensors, x, stopx, y) do
     point = {x, y}
+    # scan all sensors and check if they can reach position (x, y)
     {new_x, new_y} = sensors_scan(Map.to_list(sensors), point)
 
     if new_y != -1 do
@@ -251,6 +267,8 @@ defmodule Day15 do
   end
 
   defp y_scan(sensors, y, dim_x, dim_y) do
+    # scan all x for a position that could not be reached by sensors
+    # equivalent to for x <- 0..dim_x
     acc = x_scan(sensors, 0, dim_x, y)
 
     cond do
@@ -260,6 +278,8 @@ defmodule Day15 do
   end
 
   defp beacon_position(sensors, dim_x, dim_y) do
+    # scan all y for a position that could not be reached by sensors
+    # equivalent to for y <- 0..dim_y
     y_scan(sensors, 0, dim_x, dim_y)
   end
 
