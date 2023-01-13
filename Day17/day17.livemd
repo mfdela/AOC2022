@@ -1,0 +1,725 @@
+<!-- livebook:{"persist_outputs":true} -->
+
+# --- Day 17: Pyroclastic Flow ---
+
+```elixir
+Mix.install([])
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+:ok
+```
+
+## Part 1
+
+Your handheld device has located an alternative exit from the cave for you and the elephants. The ground is rumbling almost continuously now, but the strange valves bought you some time. It's definitely getting warmer in here, though.
+
+The tunnels eventually open into a very tall, narrow chamber. Large, oddly-shaped rocks are falling into the chamber from above, presumably due to all the rumbling. If you can't work out where the rocks will fall next, you might be crushed!
+
+The five types of rocks have the following peculiar shapes, where # is rock and . is empty space:
+
+```
+####
+
+.#.
+###
+.#.
+
+..#
+..#
+###
+
+#
+#
+#
+#
+
+##
+##
+```
+
+<!-- livebook:{"break_markdown":true} -->
+
+The rocks fall in the order shown above: first the - shape, then the + shape, and so on. Once the end of the list is reached, the same order repeats: the - shape falls first, sixth, 11th, 16th, etc.
+
+The rocks don't spin, but they do get pushed around by jets of hot gas coming out of the walls themselves. A quick scan reveals the effect the jets of hot gas will have on the rocks as they fall (your puzzle input).
+
+For example, suppose this was the jet pattern in your cave:
+
+```elixir
+example_input = ">>><<><>><<<>><>>><<<>>><<<><<<>><>><<>>"
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+">>><<><>><<<>><>>><<<>>><<<><<<>><>><<>>"
+```
+
+In jet patterns, < means a push to the left, while > means a push to the right. The pattern above means that the jets will push a falling rock right, then right, then right, then left, then left, then right, and so on. If the end of the list is reached, it repeats.
+
+The tall, vertical chamber is exactly seven units wide. Each rock appears so that its left edge is two units away from the left wall and its bottom edge is three units above the highest rock in the room (or the floor, if there isn't one).
+
+After a rock appears, it alternates between being pushed by a jet of hot gas one unit (in the direction indicated by the next symbol in the jet pattern) and then falling one unit down. If any movement would cause any part of the rock to move into the walls, floor, or a stopped rock, the movement instead does not occur. If a downward movement would have caused a falling rock to move into the floor or an already-fallen rock, the falling rock stops where it is (having landed on something) and a new rock immediately begins falling.
+
+Drawing falling rocks with @ and stopped rocks with #, the jet pattern in the example above manifests as follows:
+
+```
+The first rock begins falling:
+|..@@@@.|
+|.......|
+|.......|
+|.......|
++-------+
+
+Jet of gas pushes rock right:
+|...@@@@|
+|.......|
+|.......|
+|.......|
++-------+
+
+Rock falls 1 unit:
+|...@@@@|
+|.......|
+|.......|
++-------+
+
+Jet of gas pushes rock right, but nothing happens:
+|...@@@@|
+|.......|
+|.......|
++-------+
+
+Rock falls 1 unit:
+|...@@@@|
+|.......|
++-------+
+
+Jet of gas pushes rock right, but nothing happens:
+|...@@@@|
+|.......|
++-------+
+
+Rock falls 1 unit:
+|...@@@@|
++-------+
+
+Jet of gas pushes rock left:
+|..@@@@.|
++-------+
+
+Rock falls 1 unit, causing it to come to rest:
+|..####.|
++-------+
+
+A new rock begins falling:
+|...@...|
+|..@@@..|
+|...@...|
+|.......|
+|.......|
+|.......|
+|..####.|
++-------+
+
+Jet of gas pushes rock left:
+|..@....|
+|.@@@...|
+|..@....|
+|.......|
+|.......|
+|.......|
+|..####.|
++-------+
+
+Rock falls 1 unit:
+|..@....|
+|.@@@...|
+|..@....|
+|.......|
+|.......|
+|..####.|
++-------+
+
+Jet of gas pushes rock right:
+|...@...|
+|..@@@..|
+|...@...|
+|.......|
+|.......|
+|..####.|
++-------+
+
+Rock falls 1 unit:
+|...@...|
+|..@@@..|
+|...@...|
+|.......|
+|..####.|
++-------+
+
+Jet of gas pushes rock left:
+|..@....|
+|.@@@...|
+|..@....|
+|.......|
+|..####.|
++-------+
+
+Rock falls 1 unit:
+|..@....|
+|.@@@...|
+|..@....|
+|..####.|
++-------+
+
+Jet of gas pushes rock right:
+|...@...|
+|..@@@..|
+|...@...|
+|..####.|
++-------+
+
+Rock falls 1 unit, causing it to come to rest:
+|...#...|
+|..###..|
+|...#...|
+|..####.|
++-------+
+
+A new rock begins falling:
+|....@..|
+|....@..|
+|..@@@..|
+|.......|
+|.......|
+|.......|
+|...#...|
+|..###..|
+|...#...|
+|..####.|
++-------+
+```
+
+The moment each of the next few rocks begins falling, you would see this:
+
+```
+|..@....|
+|..@....|
+|..@....|
+|..@....|
+|.......|
+|.......|
+|.......|
+|..#....|
+|..#....|
+|####...|
+|..###..|
+|...#...|
+|..####.|
++-------+
+
+|..@@...|
+|..@@...|
+|.......|
+|.......|
+|.......|
+|....#..|
+|..#.#..|
+|..#.#..|
+|#####..|
+|..###..|
+|...#...|
+|..####.|
++-------+
+
+|..@@@@.|
+|.......|
+|.......|
+|.......|
+|....##.|
+|....##.|
+|....#..|
+|..#.#..|
+|..#.#..|
+|#####..|
+|..###..|
+|...#...|
+|..####.|
++-------+
+
+|...@...|
+|..@@@..|
+|...@...|
+|.......|
+|.......|
+|.......|
+|.####..|
+|....##.|
+|....##.|
+|....#..|
+|..#.#..|
+|..#.#..|
+|#####..|
+|..###..|
+|...#...|
+|..####.|
++-------+
+
+|....@..|
+|....@..|
+|..@@@..|
+|.......|
+|.......|
+|.......|
+|..#....|
+|.###...|
+|..#....|
+|.####..|
+|....##.|
+|....##.|
+|....#..|
+|..#.#..|
+|..#.#..|
+|#####..|
+|..###..|
+|...#...|
+|..####.|
++-------+
+
+|..@....|
+|..@....|
+|..@....|
+|..@....|
+|.......|
+|.......|
+|.......|
+|.....#.|
+|.....#.|
+|..####.|
+|.###...|
+|..#....|
+|.####..|
+|....##.|
+|....##.|
+|....#..|
+|..#.#..|
+|..#.#..|
+|#####..|
+|..###..|
+|...#...|
+|..####.|
++-------+
+
+|..@@...|
+|..@@...|
+|.......|
+|.......|
+|.......|
+|....#..|
+|....#..|
+|....##.|
+|....##.|
+|..####.|
+|.###...|
+|..#....|
+|.####..|
+|....##.|
+|....##.|
+|....#..|
+|..#.#..|
+|..#.#..|
+|#####..|
+|..###..|
+|...#...|
+|..####.|
++-------+
+
+|..@@@@.|
+|.......|
+|.......|
+|.......|
+|....#..|
+|....#..|
+|....##.|
+|##..##.|
+|######.|
+|.###...|
+|..#....|
+|.####..|
+|....##.|
+|....##.|
+|....#..|
+|..#.#..|
+|..#.#..|
+|#####..|
+|..###..|
+|...#...|
+|..####.|
++-------+
+```
+
+To prove to the elephants your simulation is accurate, they want to know how tall the tower will get after 2022 rocks have stopped (but before the 2023rd rock begins falling). In this example, the tower of rocks will be 3068 units tall.
+
+How many units tall will the tower of rocks be after 2022 rocks have stopped falling?
+
+## Part 2
+
+The elephants are not impressed by your simulation. They demand to know how tall the tower will be after 1000000000000 rocks have stopped! Only then will they feel confident enough to proceed through the cave.
+
+In the example above, the tower would be 1514285714288 units tall!
+
+How tall will the tower be after 1000000000000 rocks have stopped?
+
+## Code
+
+```elixir
+defmodule Shape do
+  defstruct [:type, :shape, :min_y]
+end
+
+defmodule Day17 do
+  @delta_x %{">" => 1, "<" => -1}
+
+  defp init_shapes() do
+    fun_xy = fn x, y, delta_x, delta_y -> {x + delta_x, y + delta_y} end
+
+    [
+      %Shape{
+        type: :hbar,
+        shape: [
+          fn x, y -> fun_xy.(x, y, 0, 0) end,
+          fn x, y -> fun_xy.(x, y, 1, 0) end,
+          fn x, y -> fun_xy.(x, y, 2, 0) end,
+          fn x, y -> fun_xy.(x, y, 3, 0) end
+        ],
+        min_y: 0
+      },
+      %Shape{
+        type: :plus,
+        shape: [
+          fn x, y -> fun_xy.(x, y, 0, 0) end,
+          fn x, y -> fun_xy.(x, y, 1, -1) end,
+          fn x, y -> fun_xy.(x, y, 1, 0) end,
+          fn x, y -> fun_xy.(x, y, 1, 1) end,
+          fn x, y -> fun_xy.(x, y, 2, 0) end
+        ],
+        min_y: -1
+      },
+      %Shape{
+        type: :lshape,
+        shape: [
+          fn x, y -> fun_xy.(x, y, 0, 0) end,
+          fn x, y -> fun_xy.(x, y, 1, 0) end,
+          fn x, y -> fun_xy.(x, y, 2, 0) end,
+          fn x, y -> fun_xy.(x, y, 2, 1) end,
+          fn x, y -> fun_xy.(x, y, 2, 2) end
+        ],
+        min_y: 0
+      },
+      %Shape{
+        type: :vbar,
+        shape: [
+          fn x, y -> fun_xy.(x, y, 0, 0) end,
+          fn x, y -> fun_xy.(x, y, 0, 1) end,
+          fn x, y -> fun_xy.(x, y, 0, 2) end,
+          fn x, y -> fun_xy.(x, y, 0, 3) end
+        ],
+        min_y: 0
+      },
+      %Shape{
+        type: :square,
+        shape: [
+          fn x, y -> fun_xy.(x, y, 0, 0) end,
+          fn x, y -> fun_xy.(x, y, 0, 1) end,
+          fn x, y -> fun_xy.(x, y, 1, 0) end,
+          fn x, y -> fun_xy.(x, y, 1, 1) end
+        ],
+        min_y: 0
+      }
+    ]
+  end
+
+  defp init_map() do
+    for x <- 0..6, reduce: %{} do
+      acc -> Map.put(acc, x, %{-1 => 1})
+    end
+  end
+
+  defp touching_bottom?(shape, map, {x, y}) do
+    for fun_xy <- shape.shape, {shape_x, shape_y} = fun_xy.(x, y), reduce: false do
+      acc ->
+        if not acc do
+          not is_nil(map[shape_x][shape_y - 1])
+        else
+          acc
+        end
+    end
+  end
+
+  defp update_map(shape, map, {x, y}) do
+    for fun_xy <- shape.shape, {shape_x, shape_y} = fun_xy.(x, y), reduce: map do
+      acc ->
+        put_in(acc[shape_x][shape_y], 1)
+    end
+  end
+
+  defp move_laterally(shape, map, {x, y}, dir) do
+    x_guard =
+      case dir do
+        1 -> 6
+        -1 -> 0
+        _ -> :error
+      end
+
+    touching =
+      for fun_xy <- shape.shape, {shape_x, shape_y} = fun_xy.(x, y), reduce: false do
+        acc ->
+          if not acc do
+            shape_x == x_guard or
+              not is_nil(map[shape_x + dir][shape_y])
+          else
+            acc
+          end
+      end
+
+    if not touching, do: dir, else: 0
+  end
+
+  defp update_state(state, rock_pos, jets_pos, rock_number, y_max, floor) do
+    hash =
+      Integer.to_string(rock_pos) <>
+        " " <>
+        Integer.to_string(jets_pos) <>
+        " " <> Enum.join(floor)
+
+    rock_state = {y_max, rock_number}
+
+    if is_map_key(state, hash) do
+      {state, Map.fetch!(state, hash)}
+    else
+      {Map.put(state, hash, rock_state), nil}
+    end
+  end
+
+  defp rock_falling(jets, shape, jets_pos, map, {x, y}) do
+    dir = @delta_x[Enum.at(jets, jets_pos)]
+    delta_x = move_laterally(shape, map, {x, y}, dir)
+
+    if touching_bottom?(shape, map, {x + delta_x, y}) do
+      {update_map(shape, map, {x + delta_x, y}), jets_pos}
+    else
+      rock_falling(jets, shape, rem(jets_pos + 1, length(jets)), map, {x + delta_x, y - 1})
+    end
+  end
+
+  defp new_rock(
+         _jets,
+         _rock_shapes,
+         _jets_pos,
+         _rock_pos,
+         rock_number,
+         map,
+         _state,
+         total_rocks,
+         _cycled
+       )
+       when rock_number == total_rocks do
+    map
+  end
+
+  defp new_rock(jets, rock_shapes, jets_pos, rock_pos, rock_num, map, state, total_rocks, cycled) do
+    shape = Enum.at(rock_shapes, rock_pos)
+    start_x = 2
+    start_y = max_h(map) + 4 - shape.min_y
+
+    {updated_map, last_jets_pos} =
+      rock_falling(jets, shape, rem(jets_pos, length(jets)), map, {start_x, start_y})
+
+    y_max = max_h(updated_map)
+
+    {last_state, rock_state} =
+      case cycled do
+        false -> update_state(state, rock_pos, jets_pos, rock_num, y_max, rel_floor(updated_map))
+        true -> {0, 0}
+      end
+
+    if not cycled and not is_nil(rock_state) do
+      IO.puts("Cycle found! @ #{rock_num}")
+      {prev_max, prev_rock_num} = rock_state
+      cycle_period = rock_num - prev_rock_num
+      num_cycles = div(total_rocks - rock_num, cycle_period)
+      rem = rem(total_rocks - rock_num, cycle_period)
+      cycle_height = y_max - prev_max
+      cycle_rocks = rock_num + num_cycles * cycle_period
+      cycle_map = reset_map(map, num_cycles * cycle_height)
+      IO.puts("cycle_period #{rock_num} - #{prev_rock_num} = #{rock_num - prev_rock_num}")
+      IO.puts("cycle_height #{y_max} - #{prev_max} = #{cycle_height}")
+      IO.puts("#{num_cycles} cycles, #{rem} remaining, next #{cycle_rocks}")
+
+      if rem == 0 do
+        cycle_map
+      else
+        new_rock(
+          jets,
+          rock_shapes,
+          rem(jets_pos, length(jets)),
+          rem(rock_pos, length(rock_shapes)),
+          cycle_rocks,
+          cycle_map,
+          last_state,
+          total_rocks,
+          true
+        )
+      end
+    else
+      new_rock(
+        jets,
+        rock_shapes,
+        rem(last_jets_pos + 1, length(jets)),
+        rem(rock_pos + 1, length(rock_shapes)),
+        rock_num + 1,
+        updated_map,
+        last_state,
+        total_rocks,
+        cycled
+      )
+    end
+  end
+
+  defp reset_map(map, height) do
+    for x <- 0..6, reduce: init_map() do
+      acc ->
+        y_l = Map.fetch!(map, x) |> Map.keys() |> Enum.sort() |> Enum.slice(-20..-1)
+
+        for y <- y_l, reduce: acc do
+          acc -> put_in(acc[x][y + height], 1)
+        end
+    end
+  end
+
+  defp max_h(map) do
+    for x <- 0..6, reduce: -1 do
+      acc ->
+        y = Map.fetch!(map, x) |> Map.keys() |> Enum.max()
+
+        cond do
+          y > acc -> y
+          true -> acc
+        end
+    end
+  end
+
+  defp rel_floor(map) do
+    f =
+      for x <- 0..6, into: [] do
+        Map.fetch!(map, x) |> Map.keys() |> Enum.max()
+      end
+
+    Enum.map(f, fn x -> x - Enum.min(f) end)
+  end
+
+  defp parse_input(input) do
+    input |> String.trim() |> String.codepoints()
+  end
+
+  def part1(input) do
+    jets = parse_input(input)
+    rock_shapes = init_shapes()
+    map = init_map()
+    final_map = new_rock(jets, rock_shapes, 0, 0, 0, map, %{}, 2022, false)
+    max = max_h(final_map)
+    max + 1
+  end
+
+  def part2(input) do
+    jets = parse_input(input)
+    rock_shapes = init_shapes()
+    map = init_map()
+    final_map = new_rock(jets, rock_shapes, 0, 0, 0, map, %{}, 1_000_000_000_000, false)
+    max = max_h(final_map)
+    max + 1
+  end
+end
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+{:module, Day17, <<70, 79, 82, 49, 0, 0, 57, ...>>, {:part2, 1}}
+```
+
+Checking that the example input produces the right result:
+
+```elixir
+Day17.part1(example_input) == 3068
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+Cycle found! @ 62
+cycle_period 62 - 27 = 35
+cycle_height 101 - 48 = 53
+56 cycles, 0 remaining, next 2022
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+true
+```
+
+```elixir
+input = File.read!("Day17/input.txt")
+Day17.part1(input)
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+3209
+```
+
+```elixir
+Day17.part2(example_input) == 1_514_285_714_288
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+Cycle found! @ 62
+cycle_period 62 - 27 = 35
+cycle_height 101 - 48 = 53
+28571428569 cycles, 23 remaining, next 999999999977
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+true
+```
+
+Using real input data (saved on a file as it's too long to show here):
+
+```elixir
+Day17.part2(input)
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+Cycle found! @ 2136
+cycle_period 2136 - 421 = 1715
+cycle_height 3385 - 674 = 2711
+583090377 cycles, 1309 remaining, next 999999998691
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+1580758017509
+```
