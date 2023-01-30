@@ -1,0 +1,396 @@
+<!-- livebook:{"persist_outputs":true} -->
+
+# --- Day 18: Boiling Boulders ---
+
+```elixir
+Mix.install([])
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+:ok
+```
+
+## Part 1
+
+You and the elephants finally reach fresh air. You've emerged near the base of a large volcano that seems to be actively erupting! Fortunately, the lava seems to be flowing away from you and toward the ocean.
+
+Bits of lava are still being ejected toward you, so you're sheltering in the cavern exit a little longer. Outside the cave, you can see the lava landing in a pond and hear it loudly hissing as it solidifies.
+
+Depending on the specific compounds in the lava and speed at which it cools, it might be forming obsidian! The cooling rate should be based on the surface area of the lava droplets, so you take a quick scan of a droplet as it flies past you (your puzzle input).
+
+Because of how quickly the lava is moving, the scan isn't very good; its resolution is quite low and, as a result, it approximates the shape of the lava droplet with 1x1x1 cubes on a 3D grid, each given as its x,y,z position.
+
+To approximate the surface area, count the number of sides of each cube that are not immediately connected to another cube. So, if your scan were only two adjacent cubes like 1,1,1 and 2,1,1, each cube would have a single side covered and five sides exposed, a total surface area of 10 sides.
+
+Here's a larger example:
+
+```elixir
+example_input = """
+2,2,2
+1,2,2
+3,2,2
+2,1,2
+2,3,2
+2,2,1
+2,2,3
+2,2,4
+2,2,6
+1,2,5
+3,2,5
+2,1,5
+2,3,5
+"""
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+"2,2,2\n1,2,2\n3,2,2\n2,1,2\n2,3,2\n2,2,1\n2,2,3\n2,2,4\n2,2,6\n1,2,5\n3,2,5\n2,1,5\n2,3,5\n"
+```
+
+In the above example, after counting up all the sides that aren't connected to another cube, the total surface area is 64.
+
+What is the surface area of your scanned lava droplet?
+
+## Part 2
+
+Something seems off about your calculation. The cooling rate depends on exterior surface area, but your calculation also included the surface area of air pockets trapped in the lava droplet.
+
+Instead, consider only cube sides that could be reached by the water and steam as the lava droplet tumbles into the pond. The steam will expand to reach as much as possible, completely displacing any air on the outside of the lava droplet but never expanding diagonally.
+
+In the larger example above, exactly one cube of air is trapped within the lava droplet (at 2,2,5), so the exterior surface area of the lava droplet is 58.
+
+What is the exterior surface area of your scanned lava droplet?
+
+## Code
+
+```elixir
+defmodule Face do
+  defstruct [:plane, :coord, :vertices, :adjacent_cube, :exposed]
+end
+
+defmodule Cube do
+  defstruct [:faces, :type]
+end
+
+defmodule Day18 do
+  defp parse_input(input) do
+    for l <- String.split(input, "\n", trim: true), t = String.split(l, ",") do
+      Enum.map(t, fn i -> String.to_integer(i) end)
+    end
+  end
+
+  defp cubes_to_faces(cubes, type \\ :solid) do
+    for c <- cubes, reduce: %{} do
+      acc ->
+        f = faces(c, type)
+        Map.put(acc, c, f)
+    end
+  end
+
+  defp faces([x, y, z], type) do
+    %Cube{
+      type: type,
+      faces: [
+        %Face{
+          plane: :x,
+          coord: x,
+          vertices: Enum.sort([[y, z], [y + 1, z], [y, z + 1], [y + 1, z + 1]]),
+          adjacent_cube: nil,
+          exposed: true
+        },
+        %Face{
+          plane: :x,
+          coord: x + 1,
+          vertices: Enum.sort([[y, z], [y + 1, z], [y, z + 1], [y + 1, z + 1]]),
+          adjacent_cube: nil,
+          exposed: true
+        },
+        %Face{
+          plane: :y,
+          coord: y,
+          vertices: Enum.sort([[x, z], [x + 1, z], [x, z + 1], [x + 1, z + 1]]),
+          adjacent_cube: nil,
+          exposed: true
+        },
+        %Face{
+          plane: :y,
+          coord: y + 1,
+          vertices: Enum.sort([[x, z], [x + 1, z], [x, z + 1], [x + 1, z + 1]]),
+          adjacent_cube: nil,
+          exposed: true
+        },
+        %Face{
+          plane: :z,
+          coord: z,
+          vertices: Enum.sort([[x, y], [x + 1, y], [x, y + 1], [x + 1, y + 1]]),
+          adjacent_cube: nil,
+          exposed: true
+        },
+        %Face{
+          plane: :z,
+          coord: z + 1,
+          vertices: Enum.sort([[x, y], [x + 1, y], [x, y + 1], [x + 1, y + 1]]),
+          adjacent_cube: nil,
+          exposed: true
+        }
+      ]
+    }
+  end
+
+  defp find_box(cubes) do
+    [first | rest] = Map.keys(cubes)
+
+    for coord <- rest, reduce: {first, first} do
+      acc ->
+        {curr_min, curr_max} = acc
+        v_min = List.zip([coord, curr_min])
+        v_max = List.zip([coord, curr_max])
+
+        n_min =
+          for {a, b} <- v_min do
+            min(a, b)
+          end
+
+        n_max =
+          for {a, b} <- v_max do
+            max(a, b)
+          end
+
+        {n_min, n_max}
+    end
+  end
+
+  defp mark_adjacent(cubes) do
+    for {v, cube} <- cubes, reduce: cubes do
+      acc ->
+        for f <- cube.faces, reduce: acc do
+          acc ->
+            w = cube_from_adj_face(v, f)
+
+            cond do
+              is_map_key(acc, w) -> touching_cubes(acc, v, w)
+              true -> acc
+            end
+        end
+    end
+  end
+
+  defp cube_from_adj_face(cube, face) do
+    x1 = face.coord
+    [x2, x3] = List.first(face.vertices)
+    index = %{x: 0, y: 1, z: 2}
+
+    cond do
+      Enum.at(cube, index[face.plane]) == x1 -> face_plane(face.plane, x1 - 1, x2, x3)
+      true -> face_plane(face.plane, x1, x2, x3)
+    end
+  end
+
+  defp face_plane(plane, x1, x2, x3) do
+    cond do
+      plane == :x -> [x1, x2, x3]
+      plane == :y -> [x2, x1, x3]
+      plane == :z -> [x2, x3, x1]
+    end
+  end
+
+  defp touching_cubes(cubes, v, w) do
+    for {{xv, xw}, ind} <- List.zip([v, w]) |> Enum.with_index(), xv != xw, reduce: cubes do
+      acc ->
+        cond do
+          xv > xw -> share_face(acc, v, w, ind)
+          xv < xw -> share_face(acc, w, v, ind)
+        end
+    end
+  end
+
+  defp share_face(cubes, v, w, index) do
+    axis = %{0 => :x, 1 => :y, 2 => :z}
+    v_faces = update_faces(cubes[v].faces, axis[index], Enum.at(v, index), w, cubes[w].type)
+    w_faces = update_faces(cubes[w].faces, axis[index], Enum.at(w, index) + 1, v, cubes[v].type)
+
+    Map.update!(cubes, v, fn c -> %Cube{c | faces: v_faces} end)
+    |> Map.update!(w, fn c -> %Cube{c | faces: w_faces} end)
+  end
+
+  defp update_faces(faces, plane, coord, touching_cube, touching_type) do
+    for f <- faces do
+      if f.plane == plane and f.coord == coord do
+        cond do
+          touching_type == :solid or touching_type == :inside_air ->
+            %Face{f | adjacent_cube: touching_cube, exposed: false}
+
+          touching_type == :air ->
+            %Face{f | adjacent_cube: touching_cube, exposed: true}
+        end
+      else
+        f
+      end
+    end
+  end
+
+  defp create_air_cubes(cubes) do
+    {[x_min, y_min, z_min], [x_max, y_max, z_max]} = find_box(cubes)
+
+    for x <- x_min..x_max, y <- y_min..y_max, z <- z_min..z_max, reduce: cubes do
+      acc ->
+        w = [x, y, z]
+
+        cond do
+          not is_map_key(acc, w) -> Map.put(acc, w, faces(w, :air))
+          true -> acc
+        end
+    end
+  end
+
+  defp flood_fill(cubes, c, set) do
+    cond do
+      MapSet.member?(set, c) -> set
+      true -> flood_fill_int(cubes, c, set)
+    end
+  end
+
+  defp flood_fill_int(cubes, c, set) do
+    s = MapSet.put(set, c)
+
+    for f <- cubes[c].faces, reduce: s do
+      acc ->
+        adj = f.adjacent_cube
+
+        cond do
+          is_nil(adj) -> MapSet.put(acc, [:inf, :inf, :inf])
+          cubes[adj].type == :air -> MapSet.union(acc, flood_fill(cubes, adj, acc))
+          true -> acc
+        end
+    end
+  end
+
+  defp count_exposed_faces(cubes) do
+    for {_c, cube} <- cubes,
+        f <- cube.faces,
+        cube.type == :solid and f.exposed,
+        reduce: 0 do
+      acc -> acc + 1
+    end
+  end
+
+  defp update_air_pockets(cubes) do
+    for {c, cube} <- cubes, cube.type == :air, reduce: [] do
+      acc ->
+        if is_in_set_list(acc, c) do
+          acc
+        else
+          s = flood_fill(cubes, c, MapSet.new())
+
+          cond do
+            MapSet.member?(s, [:inf, :inf, :inf]) -> acc
+            true -> acc ++ [s]
+          end
+        end
+    end
+  end
+
+  defp is_in_set_list([], _c), do: false
+
+  defp is_in_set_list([h | rest], c) do
+    cond do
+      MapSet.member?(h, c) -> true
+      true -> is_in_set_list(rest, c)
+    end
+  end
+
+  defp mark_inside(cubes, list_of_sets) do
+    for s <- list_of_sets, reduce: cubes do
+      acc ->
+        for c <- s, f <- acc[c].faces, adj = f.adjacent_cube, reduce: acc do
+          acc ->
+            upd = Map.update!(acc, c, fn x -> %Cube{x | type: :inside_air} end)
+
+            if upd[adj].type == :solid do
+              touching_cubes(upd, adj, c)
+            else
+              acc
+            end
+        end
+    end
+  end
+
+  defp create_solid_cubes(input) do
+    input
+    |> parse_input()
+    |> cubes_to_faces()
+  end
+
+  def part1(input) do
+    input
+    |> create_solid_cubes()
+    |> mark_adjacent()
+    |> count_exposed_faces()
+  end
+
+  def part2(input) do
+    cubes =
+      input
+      |> create_solid_cubes()
+      |> create_air_cubes()
+      |> mark_adjacent()
+
+    sets = update_air_pockets(cubes)
+
+    mark_inside(cubes, sets)
+    |> count_exposed_faces()
+  end
+end
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+{:module, Day18, <<70, 79, 82, 49, 0, 0, 59, ...>>, {:part2, 1}}
+```
+
+Checking that the example input produces the right result:
+
+```elixir
+Day18.part1(example_input) == 64
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+true
+```
+
+```elixir
+input = File.read!("Day18/input.txt")
+Day18.part1(input)
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+3526
+```
+
+```elixir
+Day18.part2(example_input)
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+58
+```
+
+```elixir
+Day18.part2(input)
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+2090
+```
