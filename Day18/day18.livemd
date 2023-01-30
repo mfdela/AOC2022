@@ -235,7 +235,10 @@ defmodule Day18 do
   defp create_air_cubes(cubes) do
     {[x_min, y_min, z_min], [x_max, y_max, z_max]} = find_box(cubes)
 
-    for x <- x_min..x_max, y <- y_min..y_max, z <- z_min..z_max, reduce: cubes do
+    for x <- (x_min - 1)..(x_max + 1),
+        y <- (y_min - 1)..(y_max + 1),
+        z <- (z_min - 1)..(z_max + 1),
+        reduce: cubes do
       acc ->
         w = [x, y, z]
 
@@ -278,42 +281,32 @@ defmodule Day18 do
   end
 
   defp update_air_pockets(cubes) do
-    for {c, cube} <- cubes, cube.type == :air, reduce: [] do
+    for {c, cube} <- cubes, cube.type == :air, reduce: {MapSet.new(), MapSet.new()} do
       acc ->
-        if is_in_set_list(acc, c) do
+        {outside_set, inside_set} = acc
+
+        if MapSet.member?(outside_set, c) or MapSet.member?(inside_set, c) do
           acc
         else
           s = flood_fill(cubes, c, MapSet.new())
 
           cond do
-            MapSet.member?(s, [:inf, :inf, :inf]) -> acc
-            true -> acc ++ [s]
+            MapSet.member?(s, [:inf, :inf, :inf]) -> {MapSet.union(outside_set, s), inside_set}
+            true -> {outside_set, MapSet.union(inside_set, s)}
           end
         end
     end
   end
 
-  defp is_in_set_list([], _c), do: false
-
-  defp is_in_set_list([h | rest], c) do
-    cond do
-      MapSet.member?(h, c) -> true
-      true -> is_in_set_list(rest, c)
-    end
-  end
-
-  defp mark_inside(cubes, list_of_sets) do
-    for s <- list_of_sets, reduce: cubes do
+  defp mark_inside(cubes, set) do
+    for c <- set, f <- cubes[c].faces, adj = f.adjacent_cube, reduce: cubes do
       acc ->
-        for c <- s, f <- acc[c].faces, adj = f.adjacent_cube, reduce: acc do
-          acc ->
-            upd = Map.update!(acc, c, fn x -> %Cube{x | type: :inside_air} end)
+        upd = Map.update!(acc, c, fn x -> %Cube{x | type: :inside_air} end)
 
-            if upd[adj].type == :solid do
-              touching_cubes(upd, adj, c)
-            else
-              acc
-            end
+        if upd[adj].type == :solid do
+          touching_cubes(upd, adj, c)
+        else
+          acc
         end
     end
   end
@@ -338,9 +331,9 @@ defmodule Day18 do
       |> create_air_cubes()
       |> mark_adjacent()
 
-    sets = update_air_pockets(cubes)
+    {_outside_set, inside_set} = update_air_pockets(cubes)
 
-    mark_inside(cubes, sets)
+    mark_inside(cubes, inside_set)
     |> count_exposed_faces()
   end
 end
