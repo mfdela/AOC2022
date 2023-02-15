@@ -483,7 +483,7 @@ defmodule Day19 do
     evolve_state(start_state, robot_costs, time, MapSet.new([start_state]), 0)
   end
 
-  defp evolve_state(state, _robot_costs, 0, tree, max_geodes) do
+  defp evolve_state(_state, _robot_costs, 0, tree, max_geodes) do
     {tree, max_geodes}
   end
 
@@ -503,7 +503,6 @@ defmodule Day19 do
           if MapSet.member?(t, build_state) do
             acc
           else
-            # IO.puts("Building #{r} @ #{time}")
             max =
               cond do
                 build_state[:geode][:mineral] > m -> build_state[:geode][:mineral]
@@ -612,14 +611,6 @@ defmodule Day19 do
     end
   end
 end
-```
-
-<!-- livebook:{"output":true} -->
-
-```
-warning: variable "state" is unused (if the variable is not meant to be used, prefix it with an underscore)
-  Day19/day19.livemd#cell:qrlc4365yycdvavdwh3d6sob4kvtef3f:49: Day19.evolve_state/5
-
 ```
 
 <!-- livebook:{"output":true} -->
