@@ -139,34 +139,34 @@ defmodule Day20 do
   @dec_key 811_589_153
 
   defp parse_input(input) do
-    for l <- String.split(input, "\n", trim: true), do: {String.to_integer(l), false}
+    i = for l <- String.split(input, "\n", trim: true), do: String.to_integer(l)
+    Enum.with_index(i)
   end
 
-  defp move(list) do
-    move(nil, list, length(list))
+  defp mix(list, times \\ 1) do
+    for _ <- 1..times, reduce: list do
+      acc ->
+        for i <- 0..(length(list) - 1), reduce: acc do
+          acc ->
+            rotate(acc, i)
+            |> move()
+        end
+    end
   end
 
-  defp move(nil, [{num, true} | t], n), do: move([{num, true}], t, n)
-
-  defp move(nil, [{num, false} | t], n),
-    do: move(nil, List.insert_at(t, rem(num, n), {num, true}), n)
-
-  defp move(h_list, [], _n), do: h_list
-
-  defp move(h_list, [{num, true} | t], n), do: move(h_list ++ [{num, true}], t, n)
-
-  defp move(h_list, [{num, false} | t], n), do: new_list(h_list, t, num, n)
-
-  defp new_list(h_list, t_list, 0, n), do: move(h_list ++ [{0, true}], t_list, n)
-
-  defp new_list(h_list, t_list, num, n) do
-    new_pos = rem(num + length(h_list) * n, n - 1)
-    new_list = List.insert_at(h_list ++ t_list, new_pos, {num, true})
+  defp move([{num, i} | t]) do
+    n = length(t)
 
     cond do
-      Enum.empty?(t_list) -> new_list
-      true -> move(nil, new_list, n)
+      num == 0 -> [{num, i} | t]
+      num > 0 -> List.insert_at(t, rem(num, n), {num, i})
+      num < 0 -> List.insert_at(t, rem(num, n) - 1, {num, i})
     end
+  end
+
+  defp rotate(list, index) do
+    {h, t} = Enum.split_while(list, fn {_x, i} -> i != index end)
+    t ++ h
   end
 
   defp find_sol(list) do
@@ -182,7 +182,7 @@ defmodule Day20 do
   def part1(input) do
     input
     |> parse_input()
-    |> move()
+    |> mix()
     |> find_sol()
   end
 
@@ -190,6 +190,8 @@ defmodule Day20 do
     input
     |> parse_input()
     |> Enum.map(fn {n, moved} -> {n * @dec_key, moved} end)
+    |> mix(10)
+    |> find_sol()
   end
 end
 ```
@@ -197,19 +199,19 @@ end
 <!-- livebook:{"output":true} -->
 
 ```
-{:module, Day20, <<70, 79, 82, 49, 0, 0, 17, ...>>, {:part2, 1}}
+{:module, Day20, <<70, 79, 82, 49, 0, 0, 18, ...>>, {:part2, 1}}
 ```
 
 Checking that the example input produces the right result:
 
 ```elixir
-Day20.part1(example_input)
+Day20.part1(example_input) == 3
 ```
 
 <!-- livebook:{"output":true} -->
 
 ```
-3
+true
 ```
 
 ```elixir
@@ -224,21 +226,13 @@ Day20.part1(input)
 ```
 
 ```elixir
-Day20.part2(example_input)
+Day20.part2(example_input) == 1_623_178_306
 ```
 
 <!-- livebook:{"output":true} -->
 
 ```
-[
-  {811589153, false},
-  {1623178306, false},
-  {-2434767459, false},
-  {2434767459, false},
-  {-1623178306, false},
-  {0, false},
-  {3246356612, false}
-]
+true
 ```
 
 ```elixir
@@ -248,13 +242,5 @@ Day20.part2(input)
 <!-- livebook:{"output":true} -->
 
 ```
-1 = 35
-2 = 72
-3 = 11
-```
-
-<!-- livebook:{"output":true} -->
-
-```
-27720
+548634267428
 ```
