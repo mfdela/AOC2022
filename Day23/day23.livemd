@@ -1,0 +1,468 @@
+<!-- livebook:{"persist_outputs":true} -->
+
+# --- Day 23: Unstable Diffusion ---
+
+```elixir
+Mix.install([])
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+:ok
+```
+
+## Part 1
+
+You enter a large crater of gray dirt where the grove is supposed to be. All around you, plants you imagine were expected to be full of fruit are instead withered and broken. A large group of Elves has formed in the middle of the grove.
+
+"...but this volcano has been dormant for months. Without ash, the fruit can't grow!"
+
+You look up to see a massive, snow-capped mountain towering above you.
+
+"It's not like there are other active volcanoes here; we've looked everywhere."
+
+"But our scanners show active magma flows; clearly it's going somewhere."
+
+They finally notice you at the edge of the grove, your pack almost overflowing from the random star fruit you've been collecting. Behind you, elephants and monkeys explore the grove, looking concerned. Then, the Elves recognize the ash cloud slowly spreading above your recent detour.
+
+"Why do you--" "How is--" "Did you just--"
+
+Before any of them can form a complete question, another Elf speaks up: "Okay, new plan. We have almost enough fruit already, and ash from the plume should spread here eventually. If we quickly plant new seedlings now, we can still make it to the extraction point. Spread out!"
+
+The Elves each reach into their pack and pull out a tiny plant. The plants rely on important nutrients from the ash, so they can't be planted too close together.
+
+There isn't enough time to let the Elves figure out where to plant the seedlings themselves; you quickly scan the grove (your puzzle input) and note their positions.
+
+For example:
+
+```elixir
+example_input = """
+....#..
+..###.#
+#...#.#
+.#...##
+#.###..
+##.#.##
+.#..#..
+"""
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+"....#..\n..###.#\n#...#.#\n.#...##\n#.###..\n##.#.##\n.#..#..\n"
+```
+
+The scan shows Elves # and empty ground .; outside your scan, more empty ground extends a long way in every direction. The scan is oriented so that north is up; orthogonal directions are written N (north), S (south), W (west), and E (east), while diagonal directions are written NE, NW, SE, SW.
+
+The Elves follow a time-consuming process to figure out where they should each go; you can speed up this process considerably. The process consists of some number of rounds during which Elves alternate between considering where to move and actually moving.
+
+During the first half of each round, each Elf considers the eight positions adjacent to themself. If no other Elves are in one of those eight positions, the Elf does not do anything during this round. Otherwise, the Elf looks in each of four directions in the following order and proposes moving one step in the first valid direction:
+
+* If there is no Elf in the N, NE, or NW adjacent positions, the Elf proposes moving north one step.
+* If there is no Elf in the S, SE, or SW adjacent positions, the Elf proposes moving south one step.
+* If there is no Elf in the W, NW, or SW adjacent positions, the Elf proposes moving west one step.
+* If there is no Elf in the E, NE, or SE adjacent positions, the Elf proposes moving east one step.
+
+After each Elf has had a chance to propose a move, the second half of the round can begin. Simultaneously, each Elf moves to their proposed destination tile if they were the only Elf to propose moving to that position. If two or more Elves propose moving to the same position, none of those Elves move.
+
+Finally, at the end of the round, the first direction the Elves considered is moved to the end of the list of directions. For example, during the second round, the Elves would try proposing a move to the south first, then west, then east, then north. On the third round, the Elves would first consider west, then east, then north, then south.
+
+As a smaller example, consider just these five Elves:
+
+```
+.....
+..##.
+..#..
+.....
+..##.
+.....
+```
+
+The northernmost two Elves and southernmost two Elves all propose moving north, while the middle Elf cannot move north and proposes moving south. The middle Elf proposes the same destination as the southwest Elf, so neither of them move, but the other three do:
+
+```
+..##.
+.....
+..#..
+...#.
+..#..
+.....
+```
+
+Next, the northernmost two Elves and the southernmost Elf all propose moving south. Of the remaining middle two Elves, the west one cannot move south and proposes moving west, while the east one cannot move south or west and proposes moving east. All five Elves succeed in moving to their proposed positions:
+
+```
+.....
+..##.
+.#...
+....#
+.....
+..#..
+```
+
+Finally, the southernmost two Elves choose not to move at all. Of the remaining three Elves, the west one proposes moving west, the east one proposes moving east, and the middle one proposes moving north; all three succeed in moving:
+
+```
+..#..
+....#
+#....
+....#
+.....
+..#..
+```
+
+At this point, no Elves need to move, and so the process ends.
+
+The larger example above proceeds as follows:
+
+```
+== Initial State ==
+..............
+..............
+.......#......
+.....###.#....
+...#...#.#....
+....#...##....
+...#.###......
+...##.#.##....
+....#..#......
+..............
+..............
+..............
+
+== End of Round 1 ==
+..............
+.......#......
+.....#...#....
+...#..#.#.....
+.......#..#...
+....#.#.##....
+..#..#.#......
+..#.#.#.##....
+..............
+....#..#......
+..............
+..............
+
+== End of Round 2 ==
+..............
+.......#......
+....#.....#...
+...#..#.#.....
+.......#...#..
+...#..#.#.....
+.#...#.#.#....
+..............
+..#.#.#.##....
+....#..#......
+..............
+..............
+
+== End of Round 3 ==
+..............
+.......#......
+.....#....#...
+..#..#...#....
+.......#...#..
+...#..#.#.....
+.#..#.....#...
+.......##.....
+..##.#....#...
+...#..........
+.......#......
+..............
+
+== End of Round 4 ==
+..............
+.......#......
+......#....#..
+..#...##......
+...#.....#.#..
+.........#....
+.#...###..#...
+..#......#....
+....##....#...
+....#.........
+.......#......
+..............
+
+== End of Round 5 ==
+.......#......
+..............
+..#..#.....#..
+.........#....
+......##...#..
+.#.#.####.....
+...........#..
+....##..#.....
+..#...........
+..........#...
+....#..#......
+..............
+After a few more rounds...
+
+== End of Round 10 ==
+.......#......
+...........#..
+..#.#..#......
+......#.......
+...#.....#..#.
+.#......##....
+.....##.......
+..#........#..
+....#.#..#....
+..............
+....#..#..#...
+..............
+```
+
+To make sure they're on the right track, the Elves like to check after round 10 that they're making good progress toward covering enough ground. To do this, count the number of empty ground tiles contained by the smallest rectangle that contains every Elf. (The edges of the rectangle should be aligned to the N/S/E/W directions; the Elves do not have the patience to calculate arbitrary rectangles.) In the above example, that rectangle is:
+
+```
+......#.....
+..........#.
+.#.#..#.....
+.....#......
+..#.....#..#
+#......##...
+....##......
+.#........#.
+...#.#..#...
+............
+...#..#..#..
+```
+
+In this region, the number of empty ground tiles is 110.
+
+Simulate the Elves' process and find the smallest rectangle that contains the Elves after 10 rounds. How many empty ground tiles does that rectangle contain?
+
+## Part 2
+
+It seems you're on the right track. Finish simulating the process and figure out where the Elves need to go. How many rounds did you save them?
+
+In the example above, the first round where no Elf moved was round 20:
+
+```
+.......#......
+....#......#..
+..#.....#.....
+......#.......
+...#....#.#..#
+#.............
+....#.....#...
+..#.....#.....
+....#.#....#..
+.........#....
+....#......#..
+.......#......
+```
+
+Figure out where the Elves need to go. What is the number of the first round where no Elf moves?
+
+## Code
+
+```elixir
+defmodule Day23 do
+  @dir %{
+    :N => {-1, 0},
+    :NE => {-1, 1},
+    :E => {0, 1},
+    :SE => {1, 1},
+    :S => {1, 0},
+    :SW => {1, -1},
+    :W => {0, -1},
+    :NW => {-1, -1}
+  }
+  @rules_lut %{
+    -1 => %{:compare => nil, :move => {0, 0}},
+    0 => %{:compare => MapSet.new([@dir[:N], @dir[:NE], @dir[:NW]]), :move => @dir[:N]},
+    1 => %{:compare => MapSet.new([@dir[:S], @dir[:SE], @dir[:SW]]), :move => @dir[:S]},
+    2 => %{:compare => MapSet.new([@dir[:W], @dir[:NW], @dir[:SW]]), :move => @dir[:W]},
+    3 => %{:compare => MapSet.new([@dir[:E], @dir[:NE], @dir[:SE]]), :move => @dir[:E]}
+  }
+
+  defp parse_input(input) do
+    for {l, i} <- String.split(input, "\n", trim: true) |> Enum.with_index(), reduce: %{} do
+      acc ->
+        r = Map.put(acc, i, %{})
+
+        for {c, j} <- String.graphemes(l) |> Enum.with_index(), reduce: r do
+          acc ->
+            case c do
+              "#" -> Map.update!(acc, i, fn x -> Map.put(x, j, [{i, j}]) end)
+              _ -> acc
+            end
+        end
+    end
+  end
+
+  defp round_evolution(map, round, n) do
+    # IO.inspect(map, label: "round #{round}")
+    propose_map =
+      for i <- Map.keys(map), j <- Map.keys(map[i]), reduce: %{} do
+        acc ->
+          set_adj = empty_adj(map, {i, j})
+
+          cond do
+            Enum.count(set_adj) == 8 -> new_row(acc, i) |> put_in([i, j], [{i, j}])
+            true -> propose_move(acc, {i, j}, set_adj, round)
+          end
+      end
+
+    new_map = propose_map |> move()
+
+    if map == new_map or round == n do
+      {map, round}
+    else
+      round_evolution(new_map, round + 1, n)
+    end
+  end
+
+  defp empty_adj(map, {i, j}) do
+    for delta_i <- -1..1, delta_j <- -1..1, reduce: MapSet.new() do
+      acc ->
+        cond do
+          delta_i == 0 and delta_j == 0 -> acc
+          is_nil(map[i + delta_i][j + delta_j]) -> MapSet.put(acc, {delta_i, delta_j})
+          true -> acc
+        end
+    end
+  end
+
+  def propose_move(map, {i, j}, set_adj, round) do
+    # + rem(round, 4), 4)
+    start_int = rem(round, 4)
+    end_int = start_int + 3
+
+    move =
+      for k <- start_int..end_int, ind = rem(k, 4), reduce: -1 do
+        acc ->
+          cond do
+            acc == -1 and MapSet.subset?(@rules_lut[ind][:compare], set_adj) -> ind
+            true -> acc
+          end
+      end
+
+    {delta_i, delta_j} = @rules_lut[move][:move]
+
+    new_row(map, i + delta_i)
+    |> update_in([i + delta_i, j + delta_j], &(List.wrap(&1) ++ [{i, j}]))
+  end
+
+  defp move(map) do
+    for i <- Map.keys(map), j <- Map.keys(map[i]), reduce: %{} do
+      acc ->
+        backtrack =
+          cond do
+            Enum.count(map[i][j]) == 1 -> [{i, j}]
+            Enum.count(map[i][j]) > 1 -> map[i][j]
+          end
+
+        for {k, l} <- backtrack, reduce: acc do
+          acc ->
+            new_row(acc, k) |> update_in([k, l], fn _ -> [{k, l}] end)
+        end
+    end
+  end
+
+  defp compute_rectangle(map) do
+    i = Map.keys(map) |> Enum.sort()
+
+    {min_j, max_j} =
+      for i <- Map.keys(map), j <- Map.keys(map[i]), reduce: {0, 0} do
+        acc ->
+          {min, max} = acc
+
+          cond do
+            j < min -> {j, max}
+            j > max -> {min, j}
+            true -> acc
+          end
+      end
+
+    (List.last(i) - List.first(i) + 1) * (max_j - min_j + 1)
+  end
+
+  defp compute_map(map) do
+    for i <- Map.keys(map), j = Enum.count(map[i]), reduce: 0 do
+      acc -> acc + j
+    end
+  end
+
+  defp new_row(map, i) do
+    cond do
+      is_nil(map[i]) -> Map.put(map, i, %{})
+      true -> map
+    end
+  end
+
+  def part1(input) do
+    {map, _round} =
+      input
+      |> parse_input()
+      |> round_evolution(0, 10)
+
+    compute_rectangle(map) - compute_map(map)
+  end
+
+  def part2(input) do
+    {_map, round} =
+      input
+      |> parse_input()
+      |> round_evolution(0, 10000)
+
+    round + 1
+  end
+end
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+{:module, Day23, <<70, 79, 82, 49, 0, 0, 34, ...>>, {:part2, 1}}
+```
+
+Checking that the example input produces the right result:
+
+```elixir
+Day23.part1(example_input)
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+110
+```
+
+```elixir
+input = File.read!("Day23/input.txt")
+Day23.part1(input)
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+3947
+```
+
+```elixir
+Day23.part2(example_input)
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+20
+```
+
+```elixir
+Day23.part2(input)
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+1012
+```
