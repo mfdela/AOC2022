@@ -1,0 +1,520 @@
+<!-- livebook:{"persist_outputs":true} -->
+
+# --- Day 24: Blizzard Basin ---
+
+```elixir
+Mix.install([])
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+:ok
+```
+
+## Part 1
+
+With everything replanted for next year (and with elephants and monkeys to tend the grove), you and the Elves leave for the extraction point.
+
+Partway up the mountain that shields the grove is a flat, open area that serves as the extraction point. It's a bit of a climb, but nothing the expedition can't handle.
+
+At least, that would normally be true; now that the mountain is covered in snow, things have become more difficult than the Elves are used to.
+
+As the expedition reaches a valley that must be traversed to reach the extraction site, you find that strong, turbulent winds are pushing small blizzards of snow and sharp ice around the valley. It's a good thing everyone packed warm clothes! To make it across safely, you'll need to find a way to avoid them.
+
+Fortunately, it's easy to see all of this from the entrance to the valley, so you make a map of the valley and the blizzards (your puzzle input). For example:
+
+```
+#.#####
+#.....#
+#>....#
+#.....#
+#...v.#
+#.....#
+#####.#
+```
+
+The walls of the valley are drawn as #; everything else is ground. Clear ground - where there is currently no blizzard - is drawn as .. Otherwise, blizzards are drawn with an arrow indicating their direction of motion: up (^), down (v), left (<), or right (>).
+
+The above map includes two blizzards, one moving right (>) and one moving down (v). In one minute, each blizzard moves one position in the direction it is pointing:
+
+```
+#.#####
+#.....#
+#.>...#
+#.....#
+#.....#
+#...v.#
+#####.#
+```
+
+Due to conservation of blizzard energy, as a blizzard reaches the wall of the valley, a new blizzard forms on the opposite side of the valley moving in the same direction. After another minute, the bottom downward-moving blizzard has been replaced with a new downward-moving blizzard at the top of the valley instead:
+
+```
+#.#####
+#...v.#
+#..>..#
+#.....#
+#.....#
+#.....#
+#####.#
+```
+
+Because blizzards are made of tiny snowflakes, they pass right through each other. After another minute, both blizzards temporarily occupy the same position, marked 2:
+
+```
+#.#####
+#.....#
+#...2.#
+#.....#
+#.....#
+#.....#
+#####.#
+```
+
+After another minute, the situation resolves itself, giving each blizzard back its personal space:
+
+```
+#.#####
+#.....#
+#....>#
+#...v.#
+#.....#
+#.....#
+#####.#
+```
+
+Finally, after yet another minute, the rightward-facing blizzard on the right is replaced with a new one on the left facing the same direction:
+
+```
+#.#####
+#.....#
+#>....#
+#.....#
+#...v.#
+#.....#
+#####.#
+```
+
+This process repeats at least as long as you are observing it, but probably forever.
+
+Here is a more complex example:
+
+```elixir
+example_input = """
+#.######
+#>>.<^<#
+#.<..<<#
+#>v.><>#
+#<^v^^>#
+######.#
+"""
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+"#.######\n#>>.<^<#\n#.<..<<#\n#>v.><>#\n#<^v^^>#\n######.#\n"
+```
+
+Your expedition begins in the only non-wall position in the top row and needs to reach the only non-wall position in the bottom row. On each minute, you can move up, down, left, or right, or you can wait in place. You and the blizzards act simultaneously, and you cannot share a position with a blizzard.
+
+In the above example, the fastest way to reach your goal requires 18 steps. Drawing the position of the expedition as E, one way to achieve this is:
+
+```
+Initial state:
+#E######
+#>>.<^<#
+#.<..<<#
+#>v.><>#
+#<^v^^>#
+######.#
+
+Minute 1, move down:
+#.######
+#E>3.<.#
+#<..<<.#
+#>2.22.#
+#>v..^<#
+######.#
+
+Minute 2, move down:
+#.######
+#.2>2..#
+#E^22^<#
+#.>2.^>#
+#.>..<.#
+######.#
+
+Minute 3, wait:
+#.######
+#<^<22.#
+#E2<.2.#
+#><2>..#
+#..><..#
+######.#
+
+Minute 4, move up:
+#.######
+#E<..22#
+#<<.<..#
+#<2.>>.#
+#.^22^.#
+######.#
+
+Minute 5, move right:
+#.######
+#2Ev.<>#
+#<.<..<#
+#.^>^22#
+#.2..2.#
+######.#
+
+Minute 6, move right:
+#.######
+#>2E<.<#
+#.2v^2<#
+#>..>2>#
+#<....>#
+######.#
+
+Minute 7, move down:
+#.######
+#.22^2.#
+#<vE<2.#
+#>>v<>.#
+#>....<#
+######.#
+
+Minute 8, move left:
+#.######
+#.<>2^.#
+#.E<<.<#
+#.22..>#
+#.2v^2.#
+######.#
+
+Minute 9, move up:
+#.######
+#<E2>>.#
+#.<<.<.#
+#>2>2^.#
+#.v><^.#
+######.#
+
+Minute 10, move right:
+#.######
+#.2E.>2#
+#<2v2^.#
+#<>.>2.#
+#..<>..#
+######.#
+
+Minute 11, wait:
+#.######
+#2^E^2>#
+#<v<.^<#
+#..2.>2#
+#.<..>.#
+######.#
+
+Minute 12, move down:
+#.######
+#>>.<^<#
+#.<E.<<#
+#>v.><>#
+#<^v^^>#
+######.#
+
+Minute 13, move down:
+#.######
+#.>3.<.#
+#<..<<.#
+#>2E22.#
+#>v..^<#
+######.#
+
+Minute 14, move right:
+#.######
+#.2>2..#
+#.^22^<#
+#.>2E^>#
+#.>..<.#
+######.#
+
+Minute 15, move right:
+#.######
+#<^<22.#
+#.2<.2.#
+#><2>E.#
+#..><..#
+######.#
+
+Minute 16, move right:
+#.######
+#.<..22#
+#<<.<..#
+#<2.>>E#
+#.^22^.#
+######.#
+
+Minute 17, move down:
+#.######
+#2.v.<>#
+#<.<..<#
+#.^>^22#
+#.2..2E#
+######.#
+
+Minute 18, move down:
+#.######
+#>2.<.<#
+#.2v^2<#
+#>..>2>#
+#<....>#
+######E#
+```
+
+What is the fewest number of minutes required to avoid the blizzards and reach the goal?
+
+## Part 2
+
+As the expedition reaches the far side of the valley, one of the Elves looks especially dismayed:
+
+He forgot his snacks at the entrance to the valley!
+
+Since you're so good at dodging blizzards, the Elves humbly request that you go back for his snacks. From the same initial conditions, how quickly can you make it from the start to the goal, then back to the start, then back to the goal?
+
+In the above example, the first trip to the goal takes 18 minutes, the trip back to the start takes 23 minutes, and the trip back to the goal again takes 13 minutes, for a total time of 54 minutes.
+
+What is the fewest number of minutes required to reach the goal, go back to the start, then reach the goal again?
+
+## Code
+
+```elixir
+defmodule Day24 do
+  @dir %{
+    "v" => {1, 0},
+    ">" => {0, 1},
+    "<" => {0, -1},
+    "^" => {-1, 0},
+    "." => {0, 0},
+    "#" => {0, 0}
+  }
+
+  defp parse_input(input) do
+    for {l, i} <- String.split(input, "\n", trim: true) |> Enum.with_index(), reduce: %{} do
+      acc ->
+        for {c, j} <- String.graphemes(l) |> Enum.with_index(), reduce: acc do
+          acc ->
+            case c do
+              "." -> acc
+              _ -> new_row(acc, i) |> put_in([i, j], [c])
+            end
+        end
+    end
+  end
+
+  defp blizzard_evolution(map) do
+    size = boundaries(map)
+    blizzard_evolution(map, size, 0, %{0 => map}, MapSet.new([map]))
+  end
+
+  defp blizzard_evolution(map, size, round, state, set) do
+    new_map =
+      for i <- Map.keys(map), j <- Map.keys(map[i]), c <- map[i][j], reduce: %{} do
+        acc ->
+          {new_i, new_j} = modulo({i, j}, size, c)
+          new_row(acc, new_i) |> update_in([new_i, new_j], &(List.wrap(&1) ++ [c]))
+      end
+
+    if not MapSet.member?(set, new_map) do
+      blizzard_evolution(
+        new_map,
+        size,
+        round + 1,
+        Map.put(state, round + 1, new_map),
+        MapSet.put(set, new_map)
+      )
+    else
+      {state, round + 1}
+    end
+  end
+
+  defp boundaries(map) do
+    {Enum.max(Map.keys(map)) - 1, Enum.max(Map.keys(map[0])) - 1}
+  end
+
+  defp new_row(map, row) do
+    cond do
+      is_nil(map[row]) -> Map.put(map, row, %{})
+      true -> map
+    end
+  end
+
+  defp modulo({i, j}, {max_i, max_j}, c) do
+    {delta_i, delta_j} = @dir[c]
+
+    case c do
+      "#" ->
+        {i, j}
+
+      ">" ->
+        {i, rem(j, max_j) + 1}
+
+      "v" ->
+        {rem(i, max_i) + 1, j}
+
+      "<" ->
+        cond do
+          j == 1 -> {i, max_j}
+          true -> {i, j - 1}
+        end
+
+      "^" ->
+        cond do
+          i == 1 -> {max_i, j}
+          true -> {i - 1, j}
+        end
+    end
+  end
+
+  defp start_end(map) do
+    {size_i, size_j} = boundaries(map)
+    [start_j] = Enum.to_list(0..(size_j + 1)) -- Map.keys(map[0])
+    [stop_j] = Enum.to_list(0..(size_j + 1)) -- Map.keys(map[size_i + 1])
+    {{0, start_j}, {size_i + 1, stop_j}}
+  end
+
+  defp find_path(states, start_pos, end_pos, period, round \\ 0) do
+    boundaries = boundaries(states[0])
+
+    frontier =
+      neigh_free(states[round + 1], MapSet.new([start_pos]), start_pos, end_pos, boundaries)
+
+    find_path(states, round + 1, period, frontier, start_pos, end_pos, boundaries)
+  end
+
+  defp find_path(states, round, period, set_frontier, start_pos, end_pos, boundaries) do
+    if MapSet.member?(set_frontier, end_pos) do
+      round
+    else
+      new_frontier =
+        neigh_free(states[rem(round + 1, period)], set_frontier, start_pos, end_pos, boundaries)
+
+      find_path(states, round + 1, period, new_frontier, start_pos, end_pos, boundaries)
+    end
+  end
+
+  defp neigh_free(map, set, {start_i, start_j}, {end_i, end_j}, {size_i, size_j}) do
+    # print_map(map)
+    for {i, j} <- set, reduce: MapSet.new() do
+      acc ->
+        for {delta_i, delta_j} <- Map.values(@dir), reduce: acc do
+          acc ->
+            cond do
+              i + delta_i == end_i and j + delta_j == end_j ->
+                MapSet.put(acc, {i + delta_i, j + delta_j})
+
+              i + delta_i == start_i and j + delta_j == start_j ->
+                MapSet.put(acc, {i + delta_i, j + delta_j})
+
+              i + delta_i < 1 or i + delta_i > size_i ->
+                acc
+
+              j + delta_j < 1 or j + delta_j > size_j ->
+                acc
+
+              is_nil(map[i + delta_i][j + delta_j]) ->
+                MapSet.put(acc, {i + delta_i, j + delta_j})
+
+              true ->
+                acc
+            end
+        end
+    end
+  end
+
+  def part1(input) do
+    {states, period} =
+      input
+      |> parse_input()
+      |> blizzard_evolution()
+
+    {start_pos, end_pos} = start_end(states[0])
+    find_path(states, start_pos, end_pos, period)
+  end
+
+  def part2(input) do
+    {states, period} =
+      input
+      |> parse_input()
+      |> blizzard_evolution()
+
+    {start_pos, end_pos} = start_end(states[0])
+    r1 = find_path(states, start_pos, end_pos, period)
+    r2 = find_path(states, end_pos, start_pos, period, r1)
+    find_path(states, start_pos, end_pos, period, r2)
+  end
+end
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+warning: variable "delta_i" is unused (if the variable is not meant to be used, prefix it with an underscore)
+  Day24/day24.livemd#cell:yzvmsxcp4eoaocvvbkvtvq42in3jhqrj:48: Day24.modulo/3
+
+warning: variable "delta_j" is unused (if the variable is not meant to be used, prefix it with an underscore)
+  Day24/day24.livemd#cell:yzvmsxcp4eoaocvvbkvtvq42in3jhqrj:48: Day24.modulo/3
+
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+{:module, Day24, <<70, 79, 82, 49, 0, 0, 34, ...>>, {:part2, 1}}
+```
+
+Checking that the example input produces the right result:
+
+```elixir
+Day24.part1(example_input) == 18
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+true
+```
+
+```elixir
+input = File.read!("Day24/input.txt")
+Day24.part1(input)
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+277
+```
+
+```elixir
+Day24.part2(example_input) == 54
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+true
+```
+
+```elixir
+Day24.part2(input)
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+877
+```
